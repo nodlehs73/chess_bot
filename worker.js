@@ -125,9 +125,28 @@ function king_attack (pieces, row, col, color) {
     return positions;
 }
 
-function queen_attack (pieces, row, col, color, want) {
-    return rook_attack (row, col, color, want).concat (bishop_attack (row, col, color, want));
+function queen_attack (pieces, row, col, color) {
+    return rook_attack (pieces, row, col, color).concat (bishop_attack (pieces, row, col, color));
 }
+
+
+
+const attack = new Map ();
+const value = new Map ();
+
+attack.set ('P', pawn_attack);
+attack.set ('Q', queen_attack);
+attack.set ('R', rook_attack);
+attack.set ('N', knight_attack);
+attack.set ('K', king_attack);
+attack.set ('B', bishop_attack);
+
+value.set ('P', 1);
+value.set ('Q', 9);
+value.set ('R', 5);
+value.set ('N', 3);
+value.set ('K', 999999);
+value.set ('B', 3);
 
 function get_new_eval (evaluation, piece, color) {
     if (piece === '.') {
@@ -150,22 +169,7 @@ function get_evaluation (pieces) {
 
 let initrow = -1, initcol = -1, finrow = -1, fincol = -1;
 
-const attack = new Map ();
-const value = new Map ();
 
-attack.set ('P', pawn_attack);
-attack.set ('Q', queen_attack);
-attack.set ('R', rook_attack);
-attack.set ('N', knight_attack);
-attack.set ('K', king_attack);
-attack.set ('B', bishop_attack);
-
-value.set ('P', 1);
-value.set ('Q', 9);
-value.set ('R', 5);
-value.set ('N', 3);
-value.set ('K', 999999);
-value.set ('B', 3);
 
 function get_best_move (chessboard, evaluation, max_so_far_white, min_so_far_black, color, depth) {
     if (depth > 5) {
@@ -190,7 +194,6 @@ function get_best_move (chessboard, evaluation, max_so_far_white, min_so_far_bla
             const func = attack.get (chessboard[i][j][1]);
             const positions = func (chessboard, i, j, color);
             
-
             for (const tuple of positions) {
                 
                 const new_row = tuple[0], new_col = tuple[1];
@@ -211,7 +214,6 @@ function get_best_move (chessboard, evaluation, max_so_far_white, min_so_far_bla
                 } else {
                     const eval = get_best_move (chessboard, new_evaluation, max_so_far_white, min_so_far_black, (color === 'w' ? 'b' : 'w'), depth + 1);
                     if (eval < best) {
-                        last = depth;
                         best = eval;
                     
                         if (depth === 0) {
@@ -230,13 +232,15 @@ function get_best_move (chessboard, evaluation, max_so_far_white, min_so_far_bla
             }
         }
     }
-    if (depth === 0) {
-        return [initrow, initcol, finrow, fincol];
+    if (depth == 0) {
+        console.log (best);
     }
     return best;
 }
 
 self.onmessage = function (message) {
     const chessboard = message.data;
-    postMessage (get_best_move (chessboard, get_evaluation (chessboard), -10000000000, 1000000000, 'b', 0));
+    get_best_move (chessboard, get_evaluation (chessboard), -1000000000, 1000000000, 'b', 0);
+
+    postMessage ([initrow, initcol, finrow, fincol]);
 }

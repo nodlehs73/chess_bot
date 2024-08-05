@@ -237,6 +237,16 @@ function reset_attacks () {
     });
 }
 
+function play_audio (piece) {
+    if (piece === '.') {
+        const move_piece = new Audio ('./audio/move-self.mp3');
+        move_piece.play();
+    } else {
+        const capture_piece = new Audio ('./audio/capture.mp3');
+        capture_piece.play ();
+    }
+}
+
 
 const attack = new Map ();
 const value = new Map ();
@@ -258,6 +268,7 @@ value.set ('B', 3);
 
 
 let initrow, initcol, finrow, fincol, last=0;
+let prev_event, turn = 0;
 
 const worker = new Worker ('./worker.js');
 
@@ -265,21 +276,15 @@ worker.onmessage = function (message) {
     const info = message.data;
     console.log (info);
     initrow = info[0], initcol = info[1], finrow = info[2], fincol = info[3];
-}
 
+    play_audio (pieces[finrow][fincol])
+    
+    pieces[finrow][fincol] = pieces[initrow][initcol];
+    pieces[initrow][initcol] = '.';
+    board[finrow][fincol].firstChild.setAttribute ('src', board[initrow][initcol].firstChild.getAttribute('src'));
+    board[initrow][initcol].firstChild.setAttribute ('src', './pieces/empty.svg');
 
-
-let prev_event, turn = 0;
-
-
-function play_audio (piece) {
-    if (piece === '.') {
-        const move_piece = new Audio ('./audio/move-self.mp3');
-        move_piece.play();
-    } else {
-        const capture_piece = new Audio ('./audio/capture.mp3');
-        capture_piece.play ();
-    }
+    turn ^= 1;
 }
 
 
@@ -289,7 +294,7 @@ function initialize_attacks () {
         image.addEventListener ('click', (event) => {
             const circle = image.nextSibling;
             if (circle.className !== "circle") {
-                if (pieces[row][col][0] === 'b') {
+                if (pieces[row][col][0] === 'b' || turn === 1) {
                     return;
                 }
                 reset_attacks ();
@@ -303,6 +308,7 @@ function initialize_attacks () {
                 const from_row = Number (prev_event.target.id[0]), from_col = Number (prev_event.target.id[1]);
 
                 play_audio (pieces[row][col]);
+                
 
                 pieces[row][col] = pieces[from_row][from_col];
                 pieces[from_row][from_col] = '.';
@@ -312,13 +318,8 @@ function initialize_attacks () {
                 reset_attacks ();
                 
                 worker.postMessage (pieces);
+                turn ^= 1;
                 
-                
-                pieces[finrow][fincol] = pieces[initrow][initcol];
-                pieces[initrow][initcol] = '.';
-                board[finrow][fincol].firstChild.setAttribute ('src', board[initrow][initcol].firstChild.getAttribute('src'));
-                board[initrow][initcol].firstChild.setAttribute ('src', './pieces/empty.svg');
-                console.log (last);
             }
         });
     });
